@@ -52,7 +52,6 @@ When you open the file, click **Enable Content** if prompted.
 
 ```vba
 Option Explicit
-
 '-----------------------------------------------------------
 ' RefreshDashboard — assign to [Refresh Dashboard] button
 '-----------------------------------------------------------
@@ -70,7 +69,6 @@ Sub RefreshDashboard()
     Application.CalculateFull
     MsgBox "Dashboard refreshed successfully.", vbInformation, "Refresh Complete"
 End Sub
-
 '-----------------------------------------------------------
 ' UpdatePivotSources — assign to [Update Pivot Tables] button
 '-----------------------------------------------------------
@@ -89,7 +87,6 @@ Sub UpdatePivotSources()
     Next ws
     MsgBox "Pivot table sources updated.", vbInformation, "Update Complete"
 End Sub
-
 '-----------------------------------------------------------
 ' WeeklySummary — assign to [Weekly Summary] button
 '-----------------------------------------------------------
@@ -117,30 +114,33 @@ Sub WeeklySummary()
         "Overdue Follow-Ups: " & followups, _
         vbInformation, "Weekly Summary"
 End Sub
-
 '-----------------------------------------------------------
 ' ExtractSkills — reads JobDescriptionText, scans vs
-' SkillsDictionary, populates JobPostingSkills (H9:J500)
+' SkillsDictionary (rows 8-27), populates JobPostingSkills
 '-----------------------------------------------------------
 Sub ExtractSkills()
     Dim dict As Object
     Dim skill As Variant
     Dim txt As String
     Dim ws As Worksheet
-    Dim lastRow As Long
     Dim i As Long
     Dim rowOut As Long
     Set ws = Sheets("Skills Gap Analysis")
     txt = ws.Range("JobDescriptionText").Value
     Set dict = CreateObject("Scripting.Dictionary")
-    lastRow = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
-    For i = 8 To lastRow
+    ' Read SkillsDictionary — pinned to rows 8-27 only
+    For i = 8 To 27
         If ws.Cells(i, 1).Value <> "" Then
             dict(ws.Cells(i, 1).Value) = ws.Cells(i, 3).Value
         End If
     Next i
-    ws.Range("H9:J500").ClearContents
-    rowOut = 9
+    ' Safe clear — cell by cell to avoid table/merge conflicts
+    For i = 8 To 500
+        ws.Cells(i, 8).Value = ""
+        ws.Cells(i, 9).Value = ""
+        ws.Cells(i, 10).Value = ""
+    Next i
+    rowOut = 8
     For Each skill In dict.Keys
         If InStr(1, txt, skill, vbTextCompare) > 0 Then
             ws.Cells(rowOut, 8).Value = skill
