@@ -277,8 +277,9 @@ End Sub
 
 ### 3. Wire Up the Macro Buttons
 
-The Dashboard has three buttons that need to be linked to the macros. Do this once after installing the macro code:
+The Dashboard has three buttons and the Skills Gap Analysis sheet has one button that need to be linked to macros. Do this once after installing the macro code:
 
+**Dashboard buttons:**
 - On the Dashboard tab, go to **Insert → Shapes → Rounded Rectangle**
 - Draw a shape over each of the three button cells (Refresh Dashboard, Weekly Summary, Update Pivot Tables)
 - Type the button label inside each shape
@@ -287,7 +288,13 @@ The Dashboard has three buttons that need to be linked to the macros. Do this on
   - `Weekly Summary` → `WeeklySummary`
   - `Update Pivot Tables` → `UpdatePivotSources`
 
-**Optional — style the buttons to match the dashboard:**
+**Skills Gap Analysis button:**
+- On the Skills Gap Analysis tab, go to **Insert → Shapes → Rounded Rectangle**
+- Draw a shape near the JOB DESCRIPTION INPUT section (row 3 area, right side works well)
+- Type `Extract Skills` inside the shape
+- Right-click the shape border (not inside it) → **Assign Macro** → select `ExtractSkills`
+
+**Optional — style all buttons to match the Quiet Productivity theme:**
 - Right-click shape → **Format Shape**
 - Fill → Solid fill → `#3A4A5A`
 - Line → Solid line → `#4F8A8B`
