@@ -117,39 +117,161 @@ End Sub
 '-----------------------------------------------------------
 ' ExtractSkills — reads JobDescriptionText, scans vs
 ' SkillsDictionary (rows 8-27), populates JobPostingSkills
+' (H8:J29), rebuilds SkillsGap table (rows 32-43), and
+' writes correct panel formulas for Top 5 Gaps and Strengths
+' VERSION: 2026.9 — SUMPRODUCT ranking, all headers restored
 '-----------------------------------------------------------
 Sub ExtractSkills()
-    Dim dict As Object
+    Dim dictWeight As Object
+    Dim dictCat As Object
     Dim skill As Variant
     Dim txt As String
     Dim ws As Worksheet
     Dim i As Long
     Dim rowOut As Long
+    Dim gapRow As Long
+    Dim cleanRow As Long
+    Dim panelRow As Long
+
     Set ws = Sheets("Skills Gap Analysis")
     txt = ws.Range("JobDescriptionText").Value
-    Set dict = CreateObject("Scripting.Dictionary")
+
+    Set dictWeight = CreateObject("Scripting.Dictionary")
+    Set dictCat = CreateObject("Scripting.Dictionary")
+
     ' Read SkillsDictionary — pinned to rows 8-27 only
     For i = 8 To 27
         If ws.Cells(i, 1).Value <> "" Then
-            dict(ws.Cells(i, 1).Value) = ws.Cells(i, 3).Value
+            dictWeight(ws.Cells(i, 1).Value) = ws.Cells(i, 3).Value
+            dictCat(ws.Cells(i, 1).Value) = ws.Cells(i, 2).Value
         End If
     Next i
-    ' Safe clear — cell by cell to avoid table/merge conflicts
-    For i = 8 To 500
+
+    ' Clear JobPostingSkills — capped at row 29
+    For i = 8 To 29
         ws.Cells(i, 8).Value = ""
         ws.Cells(i, 9).Value = ""
         ws.Cells(i, 10).Value = ""
     Next i
+
+    ' Clear SkillsGap data rows — capped at row 43
+    For i = 32 To 43
+        On Error Resume Next
+        ws.Cells(i, 1).Value = ""
+        ws.Cells(i, 2).Value = ""
+        ws.Cells(i, 3).Value = ""
+        ws.Cells(i, 4).ClearContents
+        ws.Cells(i, 5).ClearContents
+        ws.Cells(i, 6).ClearContents
+        ws.Cells(i, 7).ClearContents
+        ws.Cells(i, 8).ClearContents
+        On Error GoTo 0
+    Next i
+
+    ' Write matched skills to JobPostingSkills and SkillsGap simultaneously
     rowOut = 8
-    For Each skill In dict.Keys
+    gapRow = 32
+
+    For Each skill In dictWeight.Keys
         If InStr(1, txt, skill, vbTextCompare) > 0 Then
+            ' JobPostingSkills (H:J)
             ws.Cells(rowOut, 8).Value = skill
-            ws.Cells(rowOut, 9).Value = ""
-            ws.Cells(rowOut, 10).Value = dict(skill)
+            ws.Cells(rowOut, 9).Value = dictCat(skill)
+            ws.Cells(rowOut, 10).Value = dictWeight(skill)
+
+            ' SkillsGap table (A:H)
+            ws.Cells(gapRow, 1).Value = skill
+            ws.Cells(gapRow, 2).Value = dictCat(skill)
+            ws.Cells(gapRow, 3).Value = dictWeight(skill)
+            ' Is In Resume
+            ws.Cells(gapRow, 4).Formula = _
+                "=IF(COUNTIF(ResumeSkills[Skill],A" & gapRow & ")>0,1,0)"
+            ' Weighted Score
+            ws.Cells(gapRow, 5).Formula = _
+                "=C" & gapRow & "*D" & gapRow
+            ' Weighted Gap
+            ws.Cells(gapRow, 6).Formula = _
+                "=IF(D" & gapRow & "=1,0,C" & gapRow & ")"
+            ' Gap Rank — SUMPRODUCT tiebreaker, excludes empty rows
+            ws.Cells(gapRow, 7).Formula = _
+                "=SUMPRODUCT((SkillsGap[Weighted Gap]>F" & gapRow & ")" & _
+                "*(SkillsGap[Skill]<>"""")*1)" & _
+                "+SUMPRODUCT((SkillsGap[Weighted Gap]=F" & gapRow & ")" & _
+                "*(SkillsGap[Skill]<>"""")" & _
+                "*(SkillsGap[Skill]<A" & gapRow & "))+1"
+            ' Strength Rank — SUMPRODUCT tiebreaker, excludes empty rows
+            ws.Cells(gapRow, 8).Formula = _
+                "=SUMPRODUCT((SkillsGap[Weighted Score]>E" & gapRow & ")" & _
+                "*(SkillsGap[Skill]<>"""")*1)" & _
+                "+SUMPRODUCT((SkillsGap[Weighted Score]=E" & gapRow & ")" & _
+                "*(SkillsGap[Skill]<>"""")" & _
+                "*(SkillsGap[Skill]<A" & gapRow & "))+1"
+
             rowOut = rowOut + 1
+            gapRow = gapRow + 1
         End If
     Next skill
-    MsgBox "Skills extracted successfully.", vbInformation, "Extraction Complete"
+
+    ' Clean up leftover formula rows below matched skills — capped at row 43
+    For cleanRow = gapRow To 43
+        On Error Resume Next
+        ws.Cells(cleanRow, 4).ClearContents
+        ws.Cells(cleanRow, 5).ClearContents
+        ws.Cells(cleanRow, 6).ClearContents
+        ws.Cells(cleanRow, 7).ClearContents
+        ws.Cells(cleanRow, 8).ClearContents
+        On Error GoTo 0
+    Next cleanRow
+
+    ' Write Top 5 Skills Gaps panel formulas (rows 52-56, cols A-D)
+    For panelRow = 52 To 56
+        ws.Cells(panelRow, 1).Value = panelRow - 51
+        ws.Cells(panelRow, 2).Formula = _
+            "=IFERROR(INDEX(SkillsGap[Skill],MATCH(A" & panelRow & ",SkillsGap[Gap Rank],0)),"""")"
+        ws.Cells(panelRow, 3).Formula = _
+            "=IFERROR(INDEX(SkillsGap[Weight],MATCH(A" & panelRow & ",SkillsGap[Gap Rank],0)),"""")"
+        ws.Cells(panelRow, 4).Formula = _
+            "=IFERROR(INDEX(SkillsGap[Category],MATCH(A" & panelRow & ",SkillsGap[Gap Rank],0)),"""")"
+    Next panelRow
+
+    ' Write Top 5 Resume Strengths panel formulas (rows 60-64, cols A-D)
+    For panelRow = 60 To 64
+        ws.Cells(panelRow, 1).Value = panelRow - 59
+        ws.Cells(panelRow, 2).Formula = _
+            "=IFERROR(INDEX(SkillsGap[Skill],MATCH(A" & panelRow & ",SkillsGap[Strength Rank],0)),"""")"
+        ws.Cells(panelRow, 3).Formula = _
+            "=IFERROR(INDEX(SkillsGap[Weight],MATCH(A" & panelRow & ",SkillsGap[Strength Rank],0)),"""")"
+        ws.Cells(panelRow, 4).Formula = _
+            "=IFERROR(INDEX(SkillsGap[Category],MATCH(A" & panelRow & ",SkillsGap[Strength Rank],0)),"""")"
+    Next panelRow
+
+    ' Restore section header labels
+    ws.Cells(45, 1).Value = "JOB FIT SCORE"
+    ws.Cells(46, 1).Value = "Total Possible Weight:"
+    ws.Cells(47, 1).Value = "Total Achieved Weight:"
+    ws.Cells(48, 1).Value = "JOB FIT SCORE (0-100):"
+    ws.Cells(50, 1).Value = "TOP 5 SKILLS GAPS  (Most Important Missing Skills)"
+    ws.Cells(58, 1).Value = "TOP 5 RESUME STRENGTHS  (Highest Weighted Matching Skills)"
+
+    ' Restore Job Fit Score formulas in column C
+    ws.Cells(46, 3).Formula = "=SUM(JobPostingSkills[Weight])"
+    ws.Cells(47, 3).Formula = "=SUM(SkillsGap[Weighted Score])"
+    ws.Cells(48, 3).Formula = _
+        "=IFERROR((SUM(SkillsGap[Weighted Score])/SUM(JobPostingSkills[Weight]))*100,0)"
+
+    ' Restore panel table headers
+    ws.Cells(51, 1).Value = "Rank"
+    ws.Cells(51, 2).Value = "Skill"
+    ws.Cells(51, 3).Value = "Weight"
+    ws.Cells(51, 4).Value = "Category"
+
+    ws.Cells(59, 1).Value = "Rank"
+    ws.Cells(59, 2).Value = "Skill"
+    ws.Cells(59, 3).Value = "Weight"
+    ws.Cells(59, 4).Value = "Category"
+
+    MsgBox "Skills extracted, SkillsGap rebuilt, and panels updated successfully.", _
+        vbInformation, "Extraction Complete"
 End Sub
 ```
 
