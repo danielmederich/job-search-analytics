@@ -385,10 +385,32 @@ The workflow demonstrated something genuinely useful: use AI for ideation in you
 
 ---
 
-## Version
+## Versioning
 
-**2026.1** — Initial release
-Designed around the principles of **Quiet Productivity** — calm visual design, low cognitive load, high clarity, audit-ready documentation.
+This project follows **Semantic Versioning** to reflect architectural evolution, feature expansion, and iterative refinement.
+
+- Architecture, X.0.0, Structural redesign or core workflow changes  
+- Feature, 0.X.0, New dashboards, metrics, or capabilities added  
+- Refinement, 0.0.X, Formula updates, accuracy improvements, layout, or wording refinements  
+
+**Current Version: 2.0.1**
+
+---
+
+## Roadmap
+
+Roadmap items are categorized by system impact level, optimization, feature expansion, and architectural evolution.
+
+### 🟢 Optimization
+- KPI formula optimization and calculation accuracy improvements  
+- Enhanced timeline analytics and response tracking  
+
+### 🟡 Feature Expansion
+- Expanded macro automation for workflow efficiency  
+- Skills Gap Analysis Engine enhancement  
+
+### 🔴 Architectural Evolution
+- Resume version tracking overhaul, under evaluation based on accumulated performance data  
 
 ---
 
